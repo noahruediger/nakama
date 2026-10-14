@@ -12,12 +12,13 @@
  */
 
 var TABS = {
-  Contacts: ['ID', 'Name', 'Category', 'Relationship', 'Network', 'Place met', 'Tags', 'Membership', 'Gender', 'Priority', 'Cadence', 'Messaging app', 'Phone', 'Email', 'Instagram', 'Facebook', 'LinkedIn', 'Address', 'Birthday', 'Starred', 'Needs review', 'To contact', 'Parents', 'Partner', 'Last contact', 'Added', 'Beeper chats', 'Notes', 'Updated', 'Lat', 'Lng'],
+  Contacts: ['ID', 'Name', 'Category', 'Relationship', 'Network', 'Place met', 'Tags', 'Membership', 'Gender', 'Priority', 'Cadence', 'Messaging app', 'Phone', 'Email', 'Instagram', 'Facebook', 'LinkedIn', 'Address', 'Birthday', 'Starred', 'Needs review', 'To contact', 'Parents', 'Partner', 'Last contact', 'Added', 'Beeper chats', 'Notes', 'Updated', 'Lat', 'Lng', 'Japanese name', 'Likes'],
   Log: ['Date', 'Contact ID', 'Contact', 'App', 'Source'],
   Photos: ['Contact ID', 'Photo'],
   'Beeper Chats': ['Chat ID', 'App', 'Name', 'Last activity', 'You last sent', 'Contact ID', 'Status'],
   Maps: ['Name', 'Settings'],
   Views: ['Name', 'Settings'],
+  Dashboards: ['Name', 'Settings'],
   Lists: ['Category', 'Relationship', 'Priority', 'Cadence', 'Messaging app', 'Network', 'Gender'],
   Settings: ['Key', 'Value']
 };
@@ -29,11 +30,13 @@ var FIELDS = {
   cadence: 'Cadence', platform: 'Messaging app', phone: 'Phone', email: 'Email', instagram: 'Instagram',
   facebook: 'Facebook', linkedin: 'LinkedIn', address: 'Address', birthday: 'Birthday', starred: 'Starred',
   needsReview: 'Needs review', toContact: 'To contact', parents: 'Parents', partner: 'Partner',
-  lastContact: 'Last contact', added: 'Added', beeper: 'Beeper chats', notes: 'Notes', updated: 'Updated', lat: 'Lat', lng: 'Lng'
+  lastContact: 'Last contact', added: 'Added', beeper: 'Beeper chats', notes: 'Notes', updated: 'Updated', lat: 'Lat', lng: 'Lng', jpName: 'Japanese name', likes: 'Likes'
 };
 var LIST_FIELDS = { place: 1, tags: 1, membership: 1, parents: 1 };
 var BOOL_FIELDS = { starred: 1, needsReview: 1, toContact: 1 };
 var SYNC_FOLDER = 'NAKAMA Sync Inbox';
+var PHOTO_FOLDER = 'NAKAMA Photo Inbox';
+var READS = { all: 1, ping: 1, meta: 1, contacts: 1, photos: 1, inboxList: 1, inboxGet: 1 };
 
 /* ---------------- web endpoints ---------------- */
 
@@ -53,7 +56,7 @@ function handle_(p) {
   if (String(p.pin || '') !== pin) return out_({ ok: false, error: 'Wrong PIN.' });
   var lock = LockService.getScriptLock();
   try {
-    if (p.action !== 'all' && p.action !== 'ping') lock.waitLock(20000);
+    if (!READS[p.action]) lock.waitLock(20000);
     return out_(run_(p));
   } catch (err) {
     return out_({ ok: false, error: String(err && err.message || err) });
@@ -66,6 +69,13 @@ function run_(p) {
   switch (p.action) {
     case 'ping': return { ok: true, app: 'NAKAMA' };
     case 'all': return getAll_();
+    case 'meta': return getMeta_();
+    case 'contacts': return getContactsPage_(+p.offset || 0, +p.limit || 100);
+    case 'photos': return getPhotosPage_(+p.offset || 0, +p.limit || 100);
+    case 'inboxList': return inboxList_();
+    case 'inboxAdd': return inboxAdd_(p.name, p.photo, p.thumb);
+    case 'inboxGet': return inboxGet_(p.id);
+    case 'inboxDelete': return inboxDelete_(p.id);
     case 'batch': return { ok: true, results: (p.ops || []).map(function (op) { return run_(op); }) };
     case 'saveContact': return saveContact_(p.contact);
     case 'deleteContact': return deleteContact_(p.id);
@@ -147,13 +157,34 @@ function rowToContact_(map, row) {
   return c;
 }
 
-function getAll_() {
+function allContacts_() {
   var C = rows_('Contacts');
-  var contacts = C.values.filter(function (r) { return r[C.map['ID']]; }).map(function (r) { return rowToContact_(C.map, r); });
+  return C.values.filter(function (r) { return r[C.map['ID']]; }).map(function (r) { return rowToContact_(C.map, r); });
+}
+
+function getAll_() {
+  var m = getMeta_(), P = rows_('Photos'), photos = {};
+  P.values.forEach(function (r) { if (r[0]) photos[r[0]] = r[1]; });
+  m.contacts = allContacts_(); m.photos = photos;
+  return m;
+}
+
+// Loading in pages lets the app show "200 of 421 contacts loaded".
+function getContactsPage_(offset, limit) {
+  var all = allContacts_();
+  return { ok: true, total: all.length, contacts: all.slice(offset, offset + limit) };
+}
+
+function getPhotosPage_(offset, limit) {
+  var P = rows_('Photos'), rows = P.values.filter(function (r) { return r[0]; }), photos = {};
+  rows.slice(offset, offset + limit).forEach(function (r) { photos[r[0]] = r[1]; });
+  return { ok: true, total: rows.length, photos: photos };
+}
+
+function getMeta_() {
+  var C = rows_('Contacts'), P = rows_('Photos');
   var L = rows_('Log');
   var log = L.values.map(function (r) { return { d: r[L.map['Date']], id: r[L.map['Contact ID']], p: r[L.map['App']], s: r[L.map['Source']] }; });
-  var P = rows_('Photos'), photos = {};
-  P.values.forEach(function (r) { if (r[0]) photos[r[0]] = r[1]; });
   var B = rows_('Beeper Chats');
   var chats = B.values.map(function (r) {
     return { id: r[B.map['Chat ID']], platform: r[B.map['App']], name: r[B.map['Name']], lastActivity: r[B.map['Last activity']], lastSent: r[B.map['You last sent']], contactId: r[B.map['Contact ID']], status: r[B.map['Status']] };
@@ -165,7 +196,8 @@ function getAll_() {
   Object.keys(LS.map).forEach(function (h) { lists[h] = LS.values.map(function (r) { return r[LS.map[h]]; }).filter(String); });
   var settings = {};
   rows_('Settings').values.forEach(function (r) { if (r[0]) settings[r[0]] = r[1]; });
-  return { ok: true, contacts: contacts, log: log, photos: photos, chats: chats, maps: named('Maps'), views: named('Views'), lists: lists, settings: settings };
+  return { ok: true, contactCount: C.values.filter(function (r) { return r[C.map['ID']]; }).length, photoCount: P.values.filter(function (r) { return r[0]; }).length,
+    log: log, chats: chats, maps: named('Maps'), views: named('Views'), dashboards: named('Dashboards'), lists: lists, settings: settings };
 }
 
 /* ---------------- writes ---------------- */
@@ -240,6 +272,11 @@ function setChatStatus_(chatId, status, contactId) {
 }
 
 function linkChat_(chatId, contactId) {
+  var prev = findRow_('Beeper Chats', 'Chat ID', chatId);
+  if (prev.row > 0) {
+    var old = prev.values[prev.map['Contact ID']];
+    if (old && String(old) !== String(contactId)) unlinkChat_(chatId);
+  }
   var r = setChatStatus_(chatId, 'Linked', contactId);
   if (!r.ok) return r;
   var ch = r.chat, app = ch.values[ch.map['App']], sent = ch.values[ch.map['You last sent']];
@@ -272,7 +309,7 @@ function unlinkChat_(chatId) {
 }
 
 function saveNamed_(tab, name, settings) {
-  if (tab !== 'Maps' && tab !== 'Views') return { ok: false, error: 'Unknown tab.' };
+  if (tab !== 'Maps' && tab !== 'Views' && tab !== 'Dashboards') return { ok: false, error: 'Unknown tab.' };
   var f = findRow_(tab, 'Name', name), json = JSON.stringify(settings || {});
   if (f.row > 0) f.sh.getRange(f.row, 2).setValue(json); else f.sh.appendRow([name, json]);
   return { ok: true };
@@ -288,6 +325,56 @@ function setSetting_(key, value) {
   var f = findRow_('Settings', 'Key', key);
   if (f.row > 0) f.sh.getRange(f.row, 2).setValue(value); else f.sh.appendRow([key, value]);
   return value;
+}
+
+/* ---------------- photo inbox (unsorted photos kept in Drive) ---------------- */
+
+function photoFolder_() {
+  var id = PropertiesService.getScriptProperties().getProperty('PHOTO_FOLDER_ID');
+  if (id) { try { return DriveApp.getFolderById(id); } catch (e) {} }
+  var it = DriveApp.getFoldersByName(PHOTO_FOLDER), f = it.hasNext() ? it.next() : DriveApp.createFolder(PHOTO_FOLDER);
+  PropertiesService.getScriptProperties().setProperty('PHOTO_FOLDER_ID', f.getId());
+  return f;
+}
+
+function dataUrlBlob_(url, name) {
+  var m = /^data:([^;]+);base64,(.*)$/.exec(String(url || ''));
+  if (!m) throw new Error('That photo could not be read.');
+  return Utilities.newBlob(Utilities.base64Decode(m[2]), m[1], name);
+}
+
+function inboxList_() {
+  var files = photoFolder_().getFiles(), full = {}, thumbs = {};
+  while (files.hasNext()) {
+    var f = files.next(), n = f.getName();
+    if (/^thumb-/.test(n)) thumbs[n.slice(6)] = f; else full[n] = f;
+  }
+  var out = Object.keys(full).map(function (n) {
+    var f = full[n], t = thumbs[n];
+    return { id: f.getId(), name: n, added: f.getDateCreated().toISOString(),
+      thumb: t ? 'data:image/jpeg;base64,' + Utilities.base64Encode(t.getBlob().getBytes()) : '' };
+  }).sort(function (a, b) { return a.added < b.added ? -1 : 1; });
+  return { ok: true, photos: out };
+}
+
+function inboxAdd_(name, photo, thumb) {
+  var folder = photoFolder_(), base = (new Date().getTime().toString(36)) + '-' + String(name || 'photo.jpg').replace(/[^\w.\- ]+/g, '').slice(0, 60);
+  var f = folder.createFile(dataUrlBlob_(photo, base));
+  if (thumb) folder.createFile(dataUrlBlob_(thumb, 'thumb-' + base));
+  return { ok: true, id: f.getId(), name: base };
+}
+
+function inboxGet_(id) {
+  var f = DriveApp.getFileById(id), b = f.getBlob();
+  return { ok: true, id: id, photo: 'data:' + b.getContentType() + ';base64,' + Utilities.base64Encode(b.getBytes()) };
+}
+
+function inboxDelete_(id) {
+  var f = DriveApp.getFileById(id), n = f.getName();
+  f.setTrashed(true);
+  var t = photoFolder_().getFilesByName('thumb-' + n);
+  while (t.hasNext()) t.next().setTrashed(true);
+  return { ok: true };
 }
 
 /* ---------------- one-time setup + import ---------------- */

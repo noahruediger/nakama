@@ -21,6 +21,18 @@ This repo holds **no contact data**. The backend URL and the PIN are typed into 
 
 After changing `Code.gs`, use **Deploy → Manage deployments → Edit → New version**. That keeps the same `/exec` URL.
 
+The backend adds any missing sheet columns (Japanese name, Likes, Lat, Lng) and the **Dashboards** tab the first time they're needed, so no manual sheet edits are required.
+
+## What's in the app
+
+- **Dashboard**: drag-and-drop cards (including Favourites), card sizes, and saved dashboard views.
+- **Contacts, Canvas and Map**: the Map places everyone by address; drag people from the side panel onto the map to set their address.
+- **Profiles**: Japanese name, age, Likes, Group (type to search or press Enter to create), Needs contact list, bigger photo view, and a Link chat search across Beeper chats.
+- **Other tools**: Beeper matcher, Random contact, and the Photo inbox (photos live in the **NAKAMA Photo Inbox** Drive folder; crop one photo for one or many people).
+- **Settings**: Connection, Canvas physics and Look tabs.
+- **Syncing**: a live list of changes being sent sits under the Connected card. The first load shows a progress count.
+- Works on phones in Chrome.
+
 ## Nightly Beeper sync
 
 Each night a scheduled Claude task reads Beeper Desktop on your computer, then drops `nakama-sync-YYYY-MM-DD.json` into the **NAKAMA Sync Inbox** folder. Within the hour, the Apps Script trigger applies it:
