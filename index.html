@@ -470,7 +470,7 @@ button.tag.linkbtn:hover,.linkbtn:hover{color:var(--fg)}
 
 /* ---- v2 ---- */
 .spin{display:inline-block;width:14px;height:14px;border-radius:50%;border:2px solid var(--line2);border-top-color:var(--ink);animation:spin .8s linear infinite;vertical-align:-2px;margin-right:8px;flex:none}
-.spin.big{width:20px;height:20px;border-width:2.5px}
+.spin.spin-lg{width:20px;height:20px;border-width:2.5px}
 @keyframes spin{to{transform:rotate(360deg)}}
 .sq-bar{height:5px;border-radius:3px;background:var(--line2);overflow:hidden;margin:7px 0 6px}
 .sq-bar span{display:block;height:100%;background:var(--good);border-radius:3px;transition:width .3s}
@@ -585,7 +585,7 @@ button.tag.linkbtn:hover,.linkbtn:hover{color:var(--fg)}
 .mnav{display:none}
 
 /* live */
-.boot{position:fixed;inset:0;z-index:300;background:var(--bg);display:grid;place-items:center;text-align:center;font-size:15px;color:var(--fg2)}
+.boot{position:fixed;inset:0;z-index:3000;background:var(--bg);display:grid;place-items:center;text-align:center;font-size:15px;color:var(--fg2)}
 .boot .brand-mark svg{width:22px;height:22px}
 .demo b.live::before{background:var(--good)}
 
@@ -2328,7 +2328,7 @@ function opLabel(op){const c=byId(op.id||(op.contact&&op.contact.id));const n=c?
 
 /* ---------- loading screen ---------- */
 function bootShow(){let ov=$('.boot');if(!ov){ov=document.createElement('div');ov.className='boot';document.body.appendChild(ov);}
-  ov.innerHTML='<div class="bootbox"><div class="brand-mark" style="margin:0 auto 16px;width:44px;height:44px;border-radius:12px">'+$('.brand-mark').innerHTML+'</div><div class="bootrow"><span class="spin big" aria-hidden="true"></span><b id="bootMsg">Connecting to your sheet…</b></div><div class="sq-bar boot-bar"><span id="bootBar" style="width:4%"></span></div><div class="hint" id="bootSub">&nbsp;</div></div>';return ov;}
+  ov.innerHTML='<div class="bootbox"><div class="brand-mark" style="margin:0 auto 16px;width:44px;height:44px;border-radius:12px">'+$('.brand-mark').innerHTML+'</div><div class="bootrow"><span class="spin spin-lg" aria-hidden="true"></span><b id="bootMsg">Connecting to your sheet…</b></div><div class="sq-bar boot-bar"><span id="bootBar" style="width:4%"></span></div><div class="hint" id="bootSub">&nbsp;</div></div>';return ov;}
 function bootProgress(msg,done,total,sub){const m=$('#bootMsg'),b=$('#bootBar'),s=$('#bootSub');if(m)m.textContent=msg;if(b&&total)b.style.width=Math.max(4,Math.round(done/total*100))+'%';if(s&&sub!=null)s.textContent=sub;}
 function bootHide(){const ov=$('.boot');if(ov)ov.remove();}
 async function fetchAllPaged(){
