@@ -2009,9 +2009,11 @@ window.addEventListener('hashchange',()=>{const r=location.hash.slice(1);if(r&&r
 const MP={map:null,cluster:null,markers:new Map(),loading:null,q:'',tab:'off',queue:[],busy:false,failed:new Set(),dropping:false,tiles:null,style:store.get('mapStyle','streets'),fk:'',fv:''};
 const isDark=()=>{const t=document.documentElement.getAttribute('data-theme');return t?t==='dark':window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches;};
 function setMapTiles(){if(!MP.map)return;if(MP.tiles)MP.map.removeLayer(MP.tiles);
-  const carto=n=>L.tileLayer('https://{s}.basemaps.cartocdn.com/'+n+'/{z}/{x}/{y}{r}.png',{subdomains:'abcd',maxZoom:19,attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>'});
-  MP.tiles=MP.style==='satellite'?L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:19,attribution:'Imagery &copy; Esri'}):
-    MP.style==='light'?carto(isDark()?'dark_all':'light_all'):carto(isDark()?'dark_all':'rastertiles/voyager');
+  const E=(n,o)=>L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/'+n+'/MapServer/tile/{z}/{y}/{x}',Object.assign({maxZoom:19,attribution:'Tiles &copy; Esri'},o||{}));
+  const dk=isDark();
+  MP.tiles=MP.style==='satellite'?E('World_Imagery',{attribution:'Imagery &copy; Esri'}):
+    MP.style==='light'?L.layerGroup([E(dk?'Canvas/World_Dark_Gray_Base':'Canvas/World_Light_Gray_Base',{maxZoom:16}),E(dk?'Canvas/World_Dark_Gray_Reference':'Canvas/World_Light_Gray_Reference',{maxZoom:16,attribution:''})]):
+    E('World_Street_Map',{attribution:'Tiles &copy; Esri &mdash; Esri, HERE, Garmin, OpenStreetMap contributors'});
   MP.tiles.addTo(MP.map);}
 if(window.matchMedia)matchMedia('(prefers-color-scheme: dark)').addEventListener?.('change',()=>setMapTiles());
 const mapShows=c=>!MP.fk||((MP.fk==='category'?c.category:MP.fk==='network'?c.network:MP.fk==='tag'?(c.tags||[]).join('|'):'')||'').split('|').includes(MP.fv)||(MP.fk==='starred'&&c.starred);
