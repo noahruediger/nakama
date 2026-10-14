@@ -10,13 +10,12 @@ This repo holds **no contact data**. The backend URL and the PIN are typed into 
 2. Delete the starter code, paste in everything from [`apps-script/Code.gs`](apps-script/Code.gs), and save.
 3. Click **Project Settings** (the gear), then under **Script Properties** click **Add script property**. Name it `PIN` and give it a value only you know, such as a short phrase.
 4. Back in the editor, pick **setup** from the function list and click **Run**. Approve the permissions it asks for. This step:
-   - imports your contacts from the `nakama-import-part-*.json` files in your Drive, then moves those files to the bin
+   - imports your contacts and their photos from the `nakama-import-part-*.json` files in your Drive, then moves those files to the bin
    - creates the **NAKAMA Sync Inbox** folder for the nightly Beeper sync
    - adds an hourly trigger that applies each night's sync file
 5. Click **Deploy → New deployment**, choose the type **Web app**, and set **Execute as: Me** and **Who has access: Anyone**. Deploy, then copy the URL that ends in `/exec`.
    (Anyone can reach the URL, but every request is refused without the PIN.)
 6. Open the NAKAMA site, click **Settings**, paste the `/exec` URL and your PIN, then click **Connect**.
-7. To add the profile photos from Obsidian, go to **Other → Import from Obsidian → Import photos** and choose `nakama-photos.json` from your Contacts folder on the Desktop.
 
 ## Updating the backend
 
