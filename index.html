@@ -2333,12 +2333,15 @@ function bootProgress(msg,done,total,sub){const m=$('#bootMsg'),b=$('#bootBar'),
 function bootHide(){const ov=$('.boot');if(ov)ov.remove();}
 async function fetchAllPaged(){
   let meta;try{meta=await api('meta');}catch(e){if(/Unknown action/.test(e.message)){bootProgress('Loading your contacts…',1,3,'');return api('all');}throw e;}
-  const total=meta.contactCount||0,ptotal=meta.photoCount||0,PG=100,PP=40;let got=0,pgot=0;
+  const total=meta.contactCount||0,ptotal=meta.photoCount||0,PG=150,PP=40;let got=0,pgot=0;
   const steps=Math.ceil(total/PG)+Math.ceil(ptotal/PP)||1;let st=0;
   bootProgress('Loading contacts… 0 of '+total,0,steps,'');
-  const pages=[];for(let o=0;o<total;o+=PG)pages.push(api('contacts',{offset:o,limit:PG}).then(r=>{got+=r.contacts.length;st++;bootProgress('Loading contacts… '+Math.min(got,total)+' of '+total,st,steps,ptotal?'Photos next':'');return r.contacts;}));
+  // Apps Script struggles with many calls at once, so run two at a time and retry a page that fails
+  let slots=2;const waiters=[];const take=()=>slots>0?(slots--,Promise.resolve()):new Promise(r=>waiters.push(r));const give=()=>{const w=waiters.shift();if(w)w();else slots++;};
+  const tryApi=async(a,d)=>{for(let i=0;;i++){await take();try{return await api(a,d);}catch(e){if(i>=3)throw e;}finally{give();}await new Promise(r=>setTimeout(r,800*(i+1)));}};
+  const pages=[];for(let o=0;o<total;o+=PG)pages.push(tryApi('contacts',{offset:o,limit:PG}).then(r=>{got+=r.contacts.length;st++;bootProgress('Loading contacts… '+Math.min(got,total)+' of '+total,st,steps,ptotal?'Photos next':'');return r.contacts;}));
   const contacts=(await Promise.all(pages)).flat();
-  const ph=[];for(let o=0;o<ptotal;o+=PP)ph.push(api('photos',{offset:o,limit:PP}).then(r=>{pgot+=Object.keys(r.photos).length;st++;bootProgress('Loading photos… '+Math.min(pgot,ptotal)+' of '+ptotal,st,steps,total+' contacts loaded');return r.photos;}));
+  const ph=[];for(let o=0;o<ptotal;o+=PP)ph.push(tryApi('photos',{offset:o,limit:PP}).then(r=>{pgot+=Object.keys(r.photos).length;st++;bootProgress('Loading photos… '+Math.min(pgot,ptotal)+' of '+ptotal,st,steps,total+' contacts loaded');return r.photos;}));
   const photos=Object.assign({},...(await Promise.all(ph)));
   bootProgress('Almost done…',steps,steps,'');
   return Object.assign(meta,{contacts,photos});
