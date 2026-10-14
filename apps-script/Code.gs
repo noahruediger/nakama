@@ -12,7 +12,7 @@
  */
 
 var TABS = {
-  Contacts: ['ID', 'Name', 'Category', 'Relationship', 'Network', 'Place met', 'Tags', 'Membership', 'Gender', 'Priority', 'Cadence', 'Messaging app', 'Phone', 'Email', 'Instagram', 'Facebook', 'LinkedIn', 'Address', 'Birthday', 'Starred', 'Needs review', 'To contact', 'Parents', 'Partner', 'Last contact', 'Added', 'Beeper chats', 'Notes', 'Updated'],
+  Contacts: ['ID', 'Name', 'Category', 'Relationship', 'Network', 'Place met', 'Tags', 'Membership', 'Gender', 'Priority', 'Cadence', 'Messaging app', 'Phone', 'Email', 'Instagram', 'Facebook', 'LinkedIn', 'Address', 'Birthday', 'Starred', 'Needs review', 'To contact', 'Parents', 'Partner', 'Last contact', 'Added', 'Beeper chats', 'Notes', 'Updated', 'Lat', 'Lng'],
   Log: ['Date', 'Contact ID', 'Contact', 'App', 'Source'],
   Photos: ['Contact ID', 'Photo'],
   'Beeper Chats': ['Chat ID', 'App', 'Name', 'Last activity', 'You last sent', 'Contact ID', 'Status'],
@@ -29,7 +29,7 @@ var FIELDS = {
   cadence: 'Cadence', platform: 'Messaging app', phone: 'Phone', email: 'Email', instagram: 'Instagram',
   facebook: 'Facebook', linkedin: 'LinkedIn', address: 'Address', birthday: 'Birthday', starred: 'Starred',
   needsReview: 'Needs review', toContact: 'To contact', parents: 'Parents', partner: 'Partner',
-  lastContact: 'Last contact', added: 'Added', beeper: 'Beeper chats', notes: 'Notes', updated: 'Updated'
+  lastContact: 'Last contact', added: 'Added', beeper: 'Beeper chats', notes: 'Notes', updated: 'Updated', lat: 'Lat', lng: 'Lng'
 };
 var LIST_FIELDS = { place: 1, tags: 1, membership: 1, parents: 1 };
 var BOOL_FIELDS = { starred: 1, needsReview: 1, toContact: 1 };
@@ -99,6 +99,14 @@ function sheet_(name) {
   return sh;
 }
 
+// Adds any header from `headers` that the sheet is missing (new columns go on the right).
+function ensureCols_(sh, headers) {
+  var have = headerMap_(sh), add = headers.filter(function (h) { return have[h] === undefined; });
+  if (!add.length) return;
+  var col = sh.getLastColumn() + 1;
+  sh.getRange(1, col, 1, add.length).setValues([add]).setFontWeight('bold');
+}
+
 function headerMap_(sh) {
   var h = sh.getRange(1, 1, 1, Math.max(1, sh.getLastColumn())).getValues()[0];
   var m = {};
@@ -163,7 +171,9 @@ function getAll_() {
 /* ---------------- writes ---------------- */
 
 function contactToRow_(map, c, existing) {
-  var row = existing ? existing.slice() : new Array(Object.keys(map).length).fill('');
+  var width = 0; for (var h in map) width = Math.max(width, map[h] + 1);
+  var row = existing ? existing.slice() : [];
+  while (row.length < width) row.push('');
   for (var f in FIELDS) {
     if (c[f] === undefined) continue;
     var i = map[FIELDS[f]];
@@ -180,7 +190,9 @@ function contactToRow_(map, c, existing) {
 
 function saveContact_(c) {
   if (!c) return { ok: false, error: 'No contact sent.' };
-  var sh = sheet_('Contacts'), map = headerMap_(sh);
+  var sh = sheet_('Contacts');
+  ensureCols_(sh, TABS.Contacts);
+  var map = headerMap_(sh);
   if (!c.id) c.id = 'n' + new Date().getTime().toString(36);
   var found = findRow_('Contacts', 'ID', c.id);
   var row = contactToRow_(map, c, found.values);
