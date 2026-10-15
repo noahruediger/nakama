@@ -2647,27 +2647,30 @@ function kanaRomaji(str){
     out+=r;}
   return out;}
 const titleCase=t=>t.replace(/\S+/g,w=>w.charAt(0).toUpperCase()+w.slice(1));
-const RJ={cache:new Map(),loading:null,ready:null,failed:false};
+const RJ={cache:new Map(),failed:false};
 function romaji(name){if(!name||!JP_RE.test(name))return'';const k=String(name);
-  if(RJ.cache.has(k))return RJ.cache.get(k);
+  if(RJ.cache.has(k))return RJ.cache.get(k)||'';
   if(!KANJI_RE.test(k)){const v=titleCase(kanaRomaji(k).replace(/\s+/g,' ').trim());RJ.cache.set(k,v);return v;}
   rjQueue(k);return'';}
-function rjTag(name,cls){if(!name||!JP_RE.test(name))return'';const v=romaji(name);return'<span class="rj '+(cls||'')+'" data-jp="'+esc(name)+'">'+(v?esc(v):'<i>…</i>')+'</span>';}
+function rjTag(name,cls){if(!name||!JP_RE.test(name))return'';const v=romaji(name);if(!v&&(RJ.failed||RJ.cache.get(String(name))===''))return'';return'<span class="rj '+(cls||'')+'" data-jp="'+esc(name)+'">'+(v?esc(v):'<i>…</i>')+'</span>';}
 const RJ_PENDING=new Set();
-function loadScript(src){return new Promise((ok,no)=>{const sc=document.createElement('script');sc.src=src;sc.onload=ok;sc.onerror=()=>no(new Error('Could not load '+src));document.head.appendChild(sc);});}
-function rjLoad(){if(RJ.ready)return RJ.ready;
-  RJ.ready=loadScript('https://cdn.jsdelivr.net/npm/kuroshiro@1.2.0/dist/kuroshiro.min.js')
-    .then(()=>loadScript('https://cdn.jsdelivr.net/npm/kuroshiro-analyzer-kuromoji@1.1.0/dist/kuroshiro-analyzer-kuromoji.min.js'))
-    .then(()=>{const K=window.Kuroshiro.default||window.Kuroshiro;const A=window.KuromojiAnalyzer.default||window.KuromojiAnalyzer;const k=new K();
-      return k.init(new A({dictPath:'https://cdn.jsdelivr.net/npm/kuromoji@0.1.2/dict/'})).then(()=>k);});
-  RJ.ready.catch(()=>{RJ.failed=true;});return RJ.ready;}
+let RJW=null,RJ_ID=0;const RJ_CB=new Map();
+function rjWorker(){if(RJW||RJ.failed)return RJW;
+  try{RJW=new Worker('vendor/romaji/worker.js');}catch(e){RJ.failed=true;return null;}
+  RJW.onmessage=e=>{const cb=RJ_CB.get(e.data.id);if(cb){RJ_CB.delete(e.data.id);cb(e.data);}};
+  RJW.onerror=()=>{RJ.failed=true;RJ_CB.forEach(cb=>cb({error:'worker'}));RJ_CB.clear();};
+  return RJW;}
 let rjTimer=null;
 function rjQueue(k){if(RJ.failed)return;RJ_PENDING.add(k);clearTimeout(rjTimer);rjTimer=setTimeout(rjRun,30);}
-async function rjRun(){const list=[...RJ_PENDING];RJ_PENDING.clear();if(!list.length)return;
-  try{const k=await rjLoad();for(const n of list){if(RJ.cache.has(n))continue;
-      const v=await k.convert(n,{to:'romaji',mode:'spaced',romajiSystem:'hepburn'});RJ.cache.set(n,titleCase(String(v).replace(/ā/g,'aa').replace(/ī/g,'ii').replace(/ū/g,'uu').replace(/ē/g,'ee').replace(/ō/g,'ou').replace(/\s+/g,' ').replace(/ ([,.])/g,'$1').trim()));}}
-  catch(e){list.forEach(n=>RJ.cache.set(n,''));}
-  document.querySelectorAll('.rj[data-jp]').forEach(el=>{const v=RJ.cache.get(el.dataset.jp);if(v!==undefined){if(v)el.textContent=v;else el.remove();}});}
+function rjRun(){const list=[...RJ_PENDING].filter(n=>!RJ.cache.has(n));RJ_PENDING.clear();if(!list.length)return;
+  list.forEach(n=>RJ.cache.set(n,undefined));
+  const w=rjWorker();const done=d=>{clearTimeout(to);
+    if(d.error){list.forEach(n=>RJ.cache.set(n,''));}
+    else d.pairs.forEach(([n,v])=>RJ.cache.set(n,titleCase(String(v||'').replace(/ā/g,'aa').replace(/ī/g,'ii').replace(/ū/g,'uu').replace(/ē/g,'ee').replace(/ō/g,'ou').replace(/\s+/g,' ').replace(/ ([,.])/g,'$1').trim())));
+    document.querySelectorAll('.rj[data-jp]').forEach(el=>{const v=RJ.cache.get(el.dataset.jp);if(v!==undefined){if(v)el.textContent=v;else el.remove();}});};
+  if(!w){done({error:'no worker'});return;}
+  const id=++RJ_ID;RJ_CB.set(id,done);const to=setTimeout(()=>{if(RJ_CB.has(id)){RJ_CB.delete(id);done({error:'timeout'});}},90000);
+  w.postMessage({id,names:list});}
 
 /* ---------- gender buttons ---------- */
 function genderBtns(v,act){return'<div class="gbtns'+(v?'':' unset')+'" role="group" aria-label="Gender">'+[['Male','♂ Male','male'],['Female','♀ Female','female']].map(([g,l,c])=>'<button type="button" class="gbtn '+c+(v===g?' on':'')+'" data-act="'+act+'" data-k="'+g+'" aria-pressed="'+(v===g)+'">'+l+'</button>').join('')+'</div>';}
