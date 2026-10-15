@@ -27,8 +27,8 @@ The backend adds any missing sheet columns (Japanese name, Likes, Lat, Lng) and 
 
 - **Dashboard**: drag-and-drop cards (including Favourites), card sizes, and saved dashboard views.
 - **Contacts, Canvas and Map**: the Map places everyone by address; drag people from the side panel onto the map to set their address.
-- **Profiles**: Japanese name, age, Likes, Group (type to search or press Enter to create), Needs contact list, bigger photo view, and a Link chat search across Beeper chats.
-- **Other tools**: Beeper matcher, Random contact, and the Photo inbox (photos live in the **NAKAMA Photo Inbox** Drive folder; crop one photo for one or many people).
+- **Profiles**: My notes and AI notes (Claude writes only in AI notes), Merge duplicate, Japanese name, age, Likes, Group (type to search or press Enter to create), Needs contact list, bigger photo view, and a Link chat search across Beeper chats.
+- **Other tools**: Beeper matcher (when linking, choose to keep the contact's name, use the chat's name, or type a new one), Random contact, and the Photo inbox (photos live in the **NAKAMA Photo Inbox** Drive folder; crop one photo for one or many people).
 - **Settings**: Connection, Canvas physics and Look tabs.
 - **Syncing**: a live list of changes being sent sits under the Connected card. The first load shows a progress count.
 - Works on phones in Chrome.

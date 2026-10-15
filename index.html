@@ -691,6 +691,18 @@ button.cell:hover{border-color:var(--line2)}
 }
 .fpclose{display:none}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+.aitag{display:inline-grid;place-items:center;font-size:10px;font-weight:800;letter-spacing:.04em;padding:2px 6px;border-radius:6px;background:var(--ink);color:var(--surface);vertical-align:2px;margin-right:4px}
+.ainotes textarea.notes{background:var(--bg);min-height:240px}
+.mg-sec{font-size:11px;font-weight:750;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);padding:6px 2px 2px}
+.lcrow .jp{font-weight:600;color:var(--muted);margin-left:4px}
+.lnopts{display:flex;flex-direction:column;gap:8px}
+.lnopt{display:flex;gap:10px;align-items:flex-start;padding:11px 12px;border:1px solid var(--line2);border-radius:12px;cursor:pointer;background:var(--surface)}
+.lnopt.on{border-color:var(--ink);box-shadow:0 0 0 1px var(--ink) inset}
+.lnopt input[type=radio]{margin-top:3px;accent-color:var(--ink)}
+.lnopt b{display:block;font-size:14px}.lnopt .meta{display:block;font-size:12px;color:var(--muted);font-weight:600;margin-top:1px}
+.lnopt .fin{margin-top:8px;width:100%}
+.lnkeep{display:flex;gap:8px;align-items:center;font-size:13px;font-weight:600;color:var(--fg2);margin:12px 2px 0}
+.scrim.still,.scrim.still *{animation:none!important}
 </style>
 
 <div class="app">
@@ -801,7 +813,7 @@ function makePhoto(seed){
   return cv.toDataURL('image/jpeg',.82);
 }
 let NEXT_ID=1;
-function blank(over){return Object.assign({id:window.__live?'n'+Date.now().toString(36)+(NEXT_ID++):'c'+(NEXT_ID++),name:'',first:'',color:PALETTE[Math.floor(Math.random()*PALETTE.length)],category:'',relationship:'',network:'',place:[],tags:[],membership:[],gender:'',priority:'Low',cadence:'Not set',platform:'',phone:'',email:'',instagram:'',facebook:'',linkedin:'',address:'',lat:null,lng:null,jpName:'',likes:{},birthday:null,beeper:{},log:[],last:null,added:0,starred:false,needsReview:false,photo:'',notes:'',parents:[],spouse:''},over||{});}
+function blank(over){return Object.assign({id:window.__live?'n'+Date.now().toString(36)+(NEXT_ID++):'c'+(NEXT_ID++),name:'',first:'',color:PALETTE[Math.floor(Math.random()*PALETTE.length)],category:'',relationship:'',network:'',place:[],tags:[],membership:[],gender:'',priority:'Low',cadence:'Not set',platform:'',phone:'',email:'',instagram:'',facebook:'',linkedin:'',address:'',lat:null,lng:null,jpName:'',likes:{},aiNotes:'',birthday:null,beeper:{},log:[],last:null,added:0,starred:false,needsReview:false,photo:'',notes:'',parents:[],spouse:''},over||{});}
 function gen(n){
   const out=[],used=new Set();
   for(let i=0;i<n;i++){
@@ -920,7 +932,7 @@ const linked=c=>Object.keys(c.beeper).length>0;
 const overBy=c=>{const cd=cadDays(c);return c.last==null||!cd?0:c.last-cd;};
 function nextBday(c){if(!c.birthday)return null;let d=new Date(TODAY.getFullYear(),c.birthday.m,c.birthday.d);if(d<TODAY)d=new Date(TODAY.getFullYear()+1,c.birthday.m,c.birthday.d);return Math.round((d-TODAY)/DAY);}
 function avatar(c,size,star){return '<span class="av" style="--s:'+size+'px;background:'+c.color+'">'+(c.photo?'<img src="'+c.photo+'" alt="">':esc(initials(c.name)))+(star!==false&&c.starred?'<i class="st"></i>':'')+'</span>';}
-const searchText=c=>(c.name+' '+c.notes+' '+c.instagram+' '+c.phone+' '+c.email+' '+c.place.join(' ')+' '+c.tags.join(' ')+' '+c.category+' '+c.network).toLowerCase();
+const searchText=c=>(c.name+' '+(c.jpName||'')+' '+c.notes+' '+(c.aiNotes||'')+' '+c.instagram+' '+c.phone+' '+c.email+' '+c.place.join(' ')+' '+c.tags.join(' ')+' '+c.category+' '+c.network).toLowerCase();
 
 /* ---------- filters + sorts ---------- */
 const LAST_B=['In the last 7 days','8 to 30 days ago','31 to 90 days ago','More than 90 days ago','Never'];
@@ -1384,7 +1396,7 @@ function renderProfile(){
   const groups=[];let cur=null;c.log.slice(0,30).forEach(e=>{const d=dateOf(e.d);const key=MON[d.getMonth()]+' '+d.getFullYear();if(!cur||cur.key!==key){cur={key,items:[]};groups.push(cur);}cur.items.push(e);});
   p.innerHTML='<div class="pbar"><button class="btn ghost" data-act="close-profile">← Back</button><span class="sp"></span>'+
     (c.needsReview?'<button class="btn" data-act="reviewed" data-id="'+c.id+'">Mark as reviewed</button>':'')+
-    '<button class="btn'+(S.reach.has(c.id)?' on-list':'')+'" data-act="needs" data-id="'+c.id+'">'+(S.reach.has(c.id)?'✓ On Needs contact':'+ Needs contact')+'</button><button class="btn" data-act="star" data-id="'+c.id+'">'+(c.starred?'★ Starred':'☆ Star')+'</button><button class="btn primary" data-act="log" data-id="'+c.id+'">Log a message today</button></div>'+
+    '<button class="btn'+(S.reach.has(c.id)?' on-list':'')+'" data-act="needs" data-id="'+c.id+'">'+(S.reach.has(c.id)?'✓ On Needs contact':'+ Needs contact')+'</button><button class="btn" data-act="star" data-id="'+c.id+'">'+(c.starred?'★ Starred':'☆ Star')+'</button><button class="btn" data-act="mg-open" data-id="'+c.id+'" title="Mark as a duplicate and merge with another contact">⧉ Merge duplicate</button><button class="btn primary" data-act="log" data-id="'+c.id+'">Log a message today</button></div>'+
     '<div class="pin"><div class="phead"><button class="photo-btn'+(c.photo?'':' empty')+'" style="background:'+c.color+'" data-act="'+(c.photo?'photo-view':'photo')+'" data-id="'+c.id+'" aria-label="'+(c.photo?'View photo':'Add photo')+'">'+(c.photo?'<img src="'+c.photo+'" alt="">':'<span class="ini">'+esc(initials(c.name))+'</span>')+
     '<span class="ov"><svg viewBox="0 0 24 24"><path d="M4 8h3l2-2.5h6L17 8h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>'+(c.photo?'View photo':'Add photo')+'</span></button>'+
     '<div class="ph-main"><input class="name-in" data-k="name" id="f-name" value="'+esc(c.name)+'" placeholder="Name in English" autocomplete="off">'+
@@ -1430,7 +1442,8 @@ function renderProfile(){
       return'<div class="card likes"><div class="card-h"><h3>Likes</h3><span class="sub">The little things worth remembering</span></div><div class="fields">'+
       keys.map((k,i)=>'<label for="lk-'+i+'">'+esc(k)+'</label><input class="fin" id="lk-'+i+'" data-like="'+esc(k)+'" value="'+esc(L[k]||'')+'" placeholder="Add" autocomplete="off">'+(LIKE_KEYS.includes(k)?'<span></span>':'<button class="xs" data-act="likex" data-k="'+esc(k)+'" aria-label="Remove '+esc(k)+'">✕</button>')).join('')+
       '</div><input class="likeadd" id="likeNew" placeholder="+ Add something else, like Favourite movie, then press Enter" autocomplete="off"></div>';})()+
-    '<div class="card"><div class="card-h"><h3>Notes</h3><span class="sub">Saved when you click away</span></div><textarea class="notes" data-k="notes" id="f-notes" placeholder="What should you remember about them?">'+esc(c.notes)+'</textarea></div>'+
+    '<div class="card"><div class="card-h"><h3>My notes</h3><span class="sub">Your own notes · saved when you click away</span></div><textarea class="notes" data-k="notes" id="f-notes" placeholder="What should you remember about them?">'+esc(c.notes)+'</textarea></div>'+
+    '<div class="card ainotes"><div class="card-h"><h3><span class="aitag">AI</span> AI notes</h3><span class="sub">Claude can add to and edit this · you can too</span></div><textarea class="notes" data-k="aiNotes" id="f-aiNotes" placeholder="Nothing yet. Claude adds what it learns about them here.">'+esc(c.aiNotes||'')+'</textarea></div>'+
     '<div class="card"><div class="card-h"><h3>History</h3><span class="sub">Messages you sent, from Beeper</span></div>'+
       '<div class="stats3"><div class="stat"><div class="k">Last messaged</div><div class="v">'+rel(c.last)+'</div></div><div class="stat"><div class="k">Sent in 12 months</div><div class="v">'+count12(c)+' days</div></div><div class="stat"><div class="k">Cadence</div><div class="v">'+esc(c.cadence)+'</div></div></div>'+
       '<div class="tl">'+(groups.length?groups.map(g=>'<div class="tl-m">'+g.key+'</div>'+g.items.map(e=>'<div class="tl-r"><span class="d">'+fmtDate(e.d).replace(/ \d{4}$/,'')+'</span>'+(e.p?'<span class="app-b on">'+PCODE[e.p]+'</span>You messaged on '+e.p:'<span class="app-b">NB</span>Last contact noted')+'</div>').join('')).join(''):'<div class="meta" style="color:var(--muted);font-weight:600">You haven\'t messaged them yet.</div>')+
@@ -1594,7 +1607,7 @@ function renderCleanup(){
 const DF=[
   {sec:'Profile'},
   {k:'photo',l:'Photo',show:c=>c.photo?'<img src="'+c.photo+'" alt="">':''},
-  {k:'name',l:'Name'},{k:'category',l:'Category'},{k:'relationship',l:'Relationship'},{k:'network',l:'Group'},
+  {k:'name',l:'Name'},{k:'jpName',l:'Japanese name'},{k:'category',l:'Category'},{k:'relationship',l:'Relationship'},{k:'network',l:'Group'},
   {k:'place',l:'Place met',list:true},{k:'tags',l:'Tags',list:true},{k:'gender',l:'Gender'},{k:'priority',l:'Priority'},{k:'cadence',l:'Cadence',empty:v=>!v||v==='Not set'},
   {k:'starred',l:'Starred',show:c=>c.starred?'★ Starred':'',empty:v=>!v},
   {sec:'Contact details'},
@@ -1603,7 +1616,8 @@ const DF=[
   {sec:'Beeper and history'},
   {k:'beeper',l:'Beeper chats',list:true,show:c=>Object.keys(c.beeper).map(p=>'<span class="app-b on">'+PCODE[p]+'</span> chat '+c.beeper[p]).join('<br>'),empty:v=>!Object.keys(v||{}).length},
   {k:'log',l:'Message history',list:true,show:c=>c.log.length?c.log.length+' messages · last '+rel(c.last).toLowerCase():''},
-  {k:'notes',l:'Notes',list:true}
+  {k:'notes',l:'My notes',list:true},
+  {k:'aiNotes',l:'AI notes',list:true}
 ];
 const isEmpty=(f,v)=>f.empty?f.empty(v):(v==null||v===''||(Array.isArray(v)&&!v.length));
 const same=(a,b)=>JSON.stringify(a)===JSON.stringify(b);
@@ -1617,7 +1631,7 @@ function startReview(a,b){
 }
 function renderReview(){
   const R_=S.review,A=byId(R_.a),B=byId(R_.b);
-  let h='<div class="toolhead"><button class="btn ghost" data-act="rv-cancel">← All duplicates</button><h2>Review duplicate</h2><span class="res">Click the side you want to keep for each row</span></div>';
+  let h='<div class="toolhead"><button class="btn ghost" data-act="rv-cancel">'+(R_.back&&byId(R_.back)?'← Back to '+esc(byId(R_.back).name):'← All duplicates')+'</button><h2>Review duplicate</h2><span class="res">Click the side you want to keep for each row</span></div>';
   h+='<div class="cmp"><div></div>'+['a','b'].map(s=>{const c=s==='a'?A:B;return'<div class="cmp-head">'+avatar(c,44)+'<div style="flex:1;min-width:0"><div class="nm">'+esc(c.name)+'</div><div style="font-size:12px;color:var(--muted);font-weight:650">Added '+fmtDate(c.added)+' · '+c.log.length+' messages</div></div><button class="btn sm" data-act="rv-all" data-s="'+s+'">Keep all</button></div>';}).join('');
   let diffs=0;
   DF.forEach(f=>{
@@ -1641,13 +1655,26 @@ function doMerge(){
     if(ch==='b'){A[f.k]=JSON.parse(JSON.stringify(B[f.k]));if(f.k==='photo')A.photo=B.photo;return;}
     if(f.k==='beeper')A.beeper=Object.assign({},B.beeper,A.beeper);
     else if(f.k==='log')A.log=A.log.concat(B.log).sort((x,y)=>x.d-y.d);
-    else if(f.k==='notes')A.notes=A.notes+'\n\n'+B.notes;
+    else if(f.k==='notes'||f.k==='aiNotes')A[f.k]=(A[f.k]||'')+'\n\n'+(B[f.k]||'');
     else A[f.k]=[...new Set([...A[f.k],...B[f.k]])];});
+  // Message history and Beeper chats always come along, since they're facts about the same person
+  if(R_.ch.log==='a'||R_.ch.log===undefined){const seen=new Set(A.log.map(l=>l.d+'|'+l.p));A.log=A.log.concat(B.log.filter(l=>!seen.has(l.d+'|'+l.p))).sort((x,y)=>x.d-y.d);}
+  Object.keys(B.beeper||{}).forEach(k=>{const id=B.beeper[k];if(Object.values(A.beeper).map(String).includes(String(id)))return;let key=k;let n=2;while(A.beeper[key])key=k.replace(/ \d+$/,'')+' '+(n++);A.beeper[key]=id;});
+  A.likes=Object.assign({},B.likes||{},A.likes||{});
+  A.starred=A.starred||B.starred;A.needsReview=A.needsReview&&B.needsReview;
+  if(S.reach.has(B.id)){S.reach.add(A.id);S.reach.delete(B.id);}
+  CONTACTS.forEach(o=>{if(o.parents&&o.parents.includes(B.id))o.parents=[...new Set(o.parents.map(x=>x===B.id?A.id:x))].filter(x=>x!==o.id);if(o.spouse===B.id)o.spouse=o.id===A.id?'':A.id;});
+  ALLCHATS.forEach(ch=>{if(ch.contactId===B.id)ch.contactId=A.id;});
+  if(ME===B.id)ME=A.id;
   A.last=A.log.length?Math.min(...A.log.map(l=>l.d)):null;A.first=A.name.split(' ')[0];
   A.added=Math.max(A.added,B.added);
   CONTACTS=CONTACTS.filter(c=>c.id!==B.id);
+  if(LIVE){SNAP.delete(B.id);const sn=SNAP.get(A.id);if(sn)sn.logN=A.log.length;
+    enqueue(()=>api('mergeContacts',{keep:A.id,drop:B.id}),['Merging '+B.name+' into '+A.name]);setTimeout(syncDirty,0);}
+  const back=R_.back,from=R_.from;
   if(CV.dots.has(B.id)){CV.dots.get(B.id).el.remove();CV.dots.delete(B.id);}updateDot(A);
-  S.review=null;toast('Merged into '+A.name);renderOther();refreshCounts();
+  S.review=null;toast('Merged into '+A.name);refreshCounts();
+  if(back)backToProfile(A.id,from);else renderOther();
 }
 function renderDupes(){
   if(S.review&&byId(S.review.a)&&byId(S.review.b))return renderReview();
@@ -1932,8 +1959,12 @@ document.addEventListener('click',e=>{
     case 'review':startReview(t.dataset.a,t.dataset.b);break;
     case 'rv-pick':S.review.ch[k]=t.dataset.s;renderOther();break;
     case 'rv-all':{const sd=t.dataset.s;const A=byId(S.review.a),B=byId(S.review.b);DF.forEach(f=>{if(!f.k||S.review.ch[f.k]===undefined)return;const v=sd==='a'?A[f.k]:B[f.k];if(!isEmpty(f,v))S.review.ch[f.k]=sd;});renderOther();break;}
-    case 'rv-cancel':S.review=null;renderOther();break;
+    case 'rv-cancel':{const b=S.review&&S.review.back,f=S.review&&S.review.from;S.review=null;if(b&&byId(b))backToProfile(b,f);else renderOther();break;}
     case 'rv-merge':doMerge();break;
+    case 'mg-open':openMerge(t.dataset.id);break;
+    case 'mg-pick':pickMerge(t.dataset.id);break;
+    case 'ln-pick':if(S.ln){setLinkPick(k);if(k==='new')$('#lnNew')?.focus();}break;
+    case 'ln-ok':finishLinkName();break;
     case 'notdupe':DISMISSED.add(k);renderOther();break;
   }
 });
@@ -1964,10 +1995,14 @@ document.addEventListener('input',e=>{
   if(t.id==='addQ'){S.addQ=t.value;$('#plist').innerHTML=addList();return;}
   if(t.id==='mq'){M.q=t.value;M.sel=0;const pos=t.selectionStart;renderOther();const n=$('#mq');n.focus();n.setSelectionRange(pos,pos);}
   if(t.id==='mfind'){M.find=t.value;const pos=t.selectionStart;renderOther();const n=$('#mfind');n.focus();n.setSelectionRange(pos,pos);}
+  if(t.id==='mgq'){S.mg.q=t.value;const pos=t.selectionStart;renderMerge();const n=$('#mgq');n.focus();n.setSelectionRange(pos,pos);return;}
+  if(t.id==='lnNew'&&S.ln){S.ln.custom=t.value;if(S.ln.pick!=='new')setLinkPick('new');return;}
   if(t.id==='lcq'){S.lc.q=t.value;const pos=t.selectionStart;renderLinkChat();const n=$('#lcq');n.focus();n.setSelectionRange(pos,pos);}
   if(t.dataset&&t.dataset.phy){PHY[t.dataset.phy]=+t.value;const o=$('#phyo-'+t.dataset.phy);if(o)o.textContent=t.value;store.set('physics',PHY);}
 });
 document.addEventListener('keydown',e=>{
+  if(S.ln&&e.key==='Enter'&&!e.isComposing){e.preventDefault();e.stopPropagation();finishLinkName();return;}
+  if(S.ln&&e.key==='Escape'){S.ln=null;}
   const typing=/INPUT|TEXTAREA|SELECT/.test(document.activeElement?.tagName||'');
   if(e.key==='Escape'){if(S.draft){closeDraft();return;}if($('#modalRoot').innerHTML){closeModal();S.lc=null;return;}if(document.body.classList.contains('fp-open')){mobileFp();return;}if(S.profile){closeProfile();return;}if(S.route==='canvas'&&CV.sel){CV.sel=null;renderSideCard();return;}if(typing)document.activeElement.blur();return;}
   const chip=e.target.dataset&&e.target.dataset.chip;
@@ -2205,7 +2240,8 @@ function renderMatcher2(){
   return h;
 }
 function finishChat(chat){CHATS=CHATS.filter(x=>String(x.id)!==String(chat.id));M.done++;M.sel=0;M.q='';M.cur=null;M.find='';}
-function matcherLink2(){const chat=curChat();if(!chat)return;const s=suggestions(chat)[M.sel];if(!s)return;linkChatTo(chat,s.c);finishChat(chat);toast('Linked '+chat.name+' to '+s.c.name+' on '+chat.platform);renderOther();refreshCounts();}
+function matcherLink2(){const chat=curChat();if(!chat)return;const s=suggestions(chat)[M.sel];if(!s)return;
+  askLinkName(chat,s.c,res=>{linkChatTo(chat,s.c);applyLinkName(s.c,res);finishChat(chat);toast('Linked '+chat.name+' to '+s.c.name+' on '+chat.platform);renderOther();refreshCounts();$('#mq')?.focus();});}
 function linkChatTo(chat,c){
   const old=chat.status==='Linked'&&chat.contactId&&chat.contactId!==c.id?byId(chat.contactId):null;
   if(old){Object.keys(old.beeper).forEach(k=>{if(String(old.beeper[k])===String(chat.id))delete old.beeper[k];});if(LIVE)markClean(old);}
@@ -2275,16 +2311,17 @@ function renderLinkChat(){
   const rank=ch=>ch.status==='Linked'?2:ch.status==='Ignored'?1:0;
   list.sort((a,b)=>rank(a)-rank(b)||(a.lastAct??9999)-(b.lastAct??9999));
   const shown=list.slice(0,80);
-  $('#modalRoot').innerHTML='<div class="scrim" data-act="scrim"><div class="modal mid" role="dialog" aria-modal="true" aria-labelledby="lch"><div class="modal-h"><h2 id="lch">Link a '+esc(L.all?'':L.platform+' ')+'chat to '+esc(c.name)+'</h2><button class="xbtn" data-act="modal-close" aria-label="Close">✕</button></div>'+
+  const _still=!!$('#modalRoot .scrim');$('#modalRoot').innerHTML='<div class="scrim" data-act="scrim"><div class="modal mid" role="dialog" aria-modal="true" aria-labelledby="lch"><div class="modal-h"><h2 id="lch">Link a '+esc(L.all?'':L.platform+' ')+'chat to '+esc(c.name)+'</h2><button class="xbtn" data-act="modal-close" aria-label="Close">✕</button></div>'+
     '<label class="search" for="lcq" style="width:100%"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><line x1="16" y1="16" x2="20.5" y2="20.5"/></svg><input id="lcq" placeholder="Search by name or Beeper ID" value="'+esc(L.q)+'" autocomplete="off"></label>'+
     '<div class="seg" style="padding:10px 0 4px"><button class="'+(L.all?'':'on')+'" data-act="lc-all" data-k="0">'+esc(L.platform)+' only</button><button class="'+(L.all?'on':'')+'" data-act="lc-all" data-k="1">All apps</button></div>'+
     '<div class="lclist">'+(shown.length?shown.map(ch=>{const mine=ch.status==='Linked'&&ch.contactId===c.id;return'<button class="lcrow'+(ch.status==='Linked'?' linked':'')+'" data-act="lc-pick" data-id="'+esc(ch.id)+'"'+(mine?' disabled':'')+'><span class="app-b on">'+PCODE[ch.platform]+'</span><span class="grow"><b>'+esc(ch.name)+'</b><span class="meta">Beeper ID '+esc(ch.id)+(ch.lastAct!=null?' · active '+rel(ch.lastAct).toLowerCase():'')+'</span></span><span class="st3'+(ch.status==='Linked'?' lk':'')+'">'+(mine?'Linked here':esc(chatStatus(ch)))+'</span></button>';}).join(''):'<div class="empty" style="padding:24px"><b>No chats found</b>'+(LIVE?'Try another name or ID, or switch to All apps.':'Try All apps.')+'</div>')+
-    (list.length>80?'<div class="hint" style="padding:8px">Showing 80 of '+list.length+'. Search to narrow it down.</div>':'')+'</div></div></div>';
+    (list.length>80?'<div class="hint" style="padding:8px">Showing 80 of '+list.length+'. Search to narrow it down.</div>':'')+'</div></div></div>';if(_still)$('#modalRoot .scrim')?.classList.add('still');
 }
 function lcPick(chatId){const L=S.lc;const c=byId(L.id);const ch=ALLCHATS.find(x=>String(x.id)===String(chatId));if(!ch||!c)return;
-  const prev=ch.status==='Linked'&&byId(ch.contactId);
-  linkChatTo(ch,c);CHATS=CHATS.filter(x=>String(x.id)!==String(ch.id));
-  closeModal();S.lc=null;renderProfile();refreshCounts();toast('Linked '+ch.platform+' chat '+ch.id+' to '+c.name+(prev&&prev.id!==c.id?' (moved from '+prev.name+')':''));}
+  const prev=ch.status==='Linked'&&byId(ch.contactId);S.lc=null;
+  askLinkName(ch,c,res=>{
+  linkChatTo(ch,c);applyLinkName(c,res);CHATS=CHATS.filter(x=>String(x.id)!==String(ch.id));
+  closeModal();renderProfile();refreshCounts();toast('Linked '+ch.platform+' chat '+ch.id+' to '+c.name+(prev&&prev.id!==c.id?' (moved from '+prev.name+')':''));});}
 
 /* ---------- photo viewer ---------- */
 function openPhotoView(id){const c=byId(id);if(!c||!c.photo){openPhoto(id);return;}
@@ -2478,6 +2515,61 @@ function renderDashboard2(){
 /* ---------- mobile filter toggle ---------- */
 function mobileFp(){document.body.classList.toggle('fp-open');}
 
+
+/* ---------- merge a duplicate from the profile ---------- */
+function dupScore(a,b){
+  const tok=n=>String(n||'').toLowerCase().replace(/\(.*?\)/g,' ').replace(/[^\p{L}\p{N}\s]/gu,' ').split(/\s+/).filter(Boolean);
+  const ta=tok(a.name),tb=tok(b.name);let s=0;
+  ta.forEach(x=>{if(tb.includes(x))s+=3;else if(tb.some(y=>y.startsWith(x)||x.startsWith(y)))s+=1;});
+  if(ta[0]&&tb[0]&&ta[0]===tb[0])s+=2;
+  if(a.jpName&&b.jpName&&a.jpName===b.jpName)s+=6;
+  const same=k=>a[k]&&b[k]&&String(a[k]).replace(/\s/g,'').toLowerCase()===String(b[k]).replace(/\s/g,'').toLowerCase();
+  ['phone','email','instagram','facebook'].forEach(k=>{if(same(k))s+=8;});
+  return s;
+}
+function openMerge(id){S.mg={id,q:''};renderMerge();setTimeout(()=>$('#mgq')?.focus(),0);}
+function renderMerge(){
+  const G=S.mg;if(!G)return;const c=byId(G.id);if(!c)return;const q=G.q.trim().toLowerCase();
+  let list=CONTACTS.filter(o=>o.id!==c.id).map(o=>({o,s:dupScore(c,o)}));
+  if(q)list=list.filter(x=>searchText(x.o).includes(q));else list=list.filter(x=>x.s>=3);
+  list.sort((a,b)=>b.s-a.s||a.o.name.localeCompare(b.o.name));
+  const shown=list.slice(0,60);
+  const _still=!!$('#modalRoot .scrim');$('#modalRoot').innerHTML='<div class="scrim" data-act="scrim"><div class="modal mid" role="dialog" aria-modal="true" aria-labelledby="mgh"><div class="modal-h"><h2 id="mgh">Merge a duplicate of '+esc(c.name)+'</h2><button class="xbtn" data-act="modal-close" aria-label="Close">✕</button></div>'+
+    '<p class="hint" style="margin:0 0 10px">Pick the other copy of this person. Next you choose which details to keep, then the two become one contact. Messages, Beeper chats and photos all move across.</p>'+
+    '<label class="search" for="mgq" style="width:100%"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><line x1="16" y1="16" x2="20.5" y2="20.5"/></svg><input id="mgq" placeholder="Search any contact" value="'+esc(G.q)+'" autocomplete="off"></label>'+
+    '<div class="lclist">'+(!q&&shown.length?'<div class="mg-sec">Looks similar</div>':'')+(shown.length?shown.map(({o,s})=>'<button class="lcrow" data-act="mg-pick" data-id="'+o.id+'">'+avatar(o,32,false)+'<span class="grow"><b>'+esc(o.name)+(o.jpName?' <span class="jp">'+esc(o.jpName)+'</span>':'')+'</b><span class="meta">'+esc([o.category,o.network,o.phone,o.instagram].filter(Boolean).join(' · ')||'No details')+' · '+(o.last!=null?'messaged '+rel(o.last).toLowerCase():'never messaged')+'</span></span>'+(s>=8?'<span class="st3 lk">Very likely</span>':s>=3?'<span class="st3">Similar name</span>':'')+'</button>').join(''):'<div class="hint" style="padding:10px">'+(q?'No one matches that.':'No obvious duplicates. Search for the other copy above.')+'</div>')+'</div></div></div>';if(_still)$('#modalRoot .scrim')?.classList.add('still');
+}
+function pickMerge(otherId){const id=S.mg.id;S.mg=null;closeModal();
+  const from=S.route;if(S.profile)closeProfile();if(S.route!=='other')route('other');
+  S.tool='dupes';startReview(id,otherId);S.review.back=id;S.review.from=from;}
+function backToProfile(id,from){S.tool=null;S.review=null;if(from&&from!==S.route)route(from);else renderOther();openProfile(id);}
+
+/* ---------- choose a name when linking a chat ---------- */
+const normName=n=>String(n||'').trim().toLowerCase().replace(/\s+/g,' ');
+function askLinkName(chat,c,after){
+  if(!chat.name||normName(chat.name)===normName(c.name)||/^\+?[\d\s()-]+$/.test(chat.name)){after(null);return;}
+  S.ln={chat,c,after,pick:'keep'};renderLinkName();
+}
+function renderLinkName(){const L=S.ln;if(!L)return;const {chat,c}=L;
+  const opt=(k,label,sub)=>'<label class="lnopt'+(L.pick===k?' on':'')+'"><input type="radio" name="lnpick" value="'+k+'"'+(L.pick===k?' checked':'')+' data-act="ln-pick" data-k="'+k+'"><span><b>'+label+'</b><span class="meta">'+sub+'</span></span></label>';
+  const _still=!!$('#modalRoot .scrim');$('#modalRoot').innerHTML='<div class="scrim" data-act="scrim"><div class="modal" role="dialog" aria-modal="true" aria-labelledby="lnh"><div class="modal-h"><h2 id="lnh">Which name should '+esc(c.first||c.name)+' have?</h2><button class="xbtn" data-act="modal-close" aria-label="Close">✕</button></div>'+
+    '<p class="hint" style="margin:0 0 12px">You\'re linking the '+esc(chat.platform)+' chat <b>'+esc(chat.name)+'</b> to <b>'+esc(c.name)+'</b>.</p>'+
+    '<div class="lnopts">'+opt('keep',esc(c.name),'Keep the name they already have')+opt('chat',esc(chat.name),'Use the name from '+esc(chat.platform))+
+    '<label class="lnopt'+(L.pick==='new'?' on':'')+'"><input type="radio" name="lnpick" value="new"'+(L.pick==='new'?' checked':'')+' data-act="ln-pick" data-k="new"><span style="flex:1"><b>Write a new name</b><input class="fin" id="lnNew" placeholder="Type a name" autocomplete="off" value="'+esc(L.custom||'')+'"></span></label></div>'+
+    '<label class="lnkeep" id="lnKeepRow"'+(L.pick==='keep'?' hidden':'')+'><input type="checkbox" id="lnSaveOld" checked> Keep “'+esc(c.name)+'” in their notes as another name</label>'+
+    '<div class="mfoot"><span style="flex:1"></span><button class="btn" data-act="modal-close">Cancel</button><button class="btn primary" data-act="ln-ok">Link chat</button></div></div></div>';if(_still)$('#modalRoot .scrim')?.classList.add('still');
+}
+function setLinkPick(k){const L=S.ln;if(!L)return;L.pick=k;
+  document.querySelectorAll('.lnopt').forEach(o=>{const r=o.querySelector('input[type=radio]');const on=r.value===k;o.classList.toggle('on',on);r.checked=on;});
+  const kr=$('#lnKeepRow');if(kr)kr.hidden=k==='keep';}
+function finishLinkName(){const L=S.ln;if(!L)return;let name=null;
+  if(L.pick==='chat')name=L.chat.name;else if(L.pick==='new'){name=($('#lnNew')?.value||'').trim();if(!name){toast('Type the new name first');$('#lnNew')?.focus();return;}}
+  const keepOld=L.pick!=='keep'&&$('#lnSaveOld')?.checked;S.ln=null;closeModal();
+  L.after(name&&name!==L.c.name?{name,keepOld}:null);}
+function applyLinkName(c,res){if(!res)return;const old=c.name;c.name=res.name;c.first=res.name.split(' ')[0];
+  if(res.keepOld&&old&&!String(c.notes||'').includes(old))c.notes=(c.notes?c.notes.replace(/\s+$/,'')+'\n':'')+'Also known as: '+old;
+  updateDot(c);setTimeout(syncDirty,0);}
+
 /* ---------- live data: Google Sheet via Apps Script ---------- */
 let LIVE=false;const API={url:'',pin:''};const SNAP=new Map();let QUEUE=Promise.resolve();let PENDING=0;let SYNCINFO='';
 const pad2=n=>String(n).padStart(2,'0');
@@ -2486,7 +2578,7 @@ function dateToDays(s){const m=/^(\d{4})-(\d\d)-(\d\d)/.exec(String(s||''));if(!
 function toBackend(c){return{id:c.id,name:c.name,category:c.category||'',relationship:c.relationship||'',network:c.network||'',place:c.place||[],tags:c.tags||[],membership:c.membership||[],gender:c.gender||'',priority:c.priority||'Low',
   cadence:c.cadence==='Not set'?'':(c.cadence||''),platform:c.platform||'',phone:c.phone||'',email:c.email||'',instagram:c.instagram||'',facebook:c.facebook||'',linkedin:c.linkedin||'',address:c.address||'',lat:hasGeo(c)?c.lat:'',lng:hasGeo(c)?c.lng:'',jpName:c.jpName||'',likes:Object.keys(c.likes||{}).length?JSON.stringify(c.likes):'',
   birthday:c.birthday?(c.birthday.y||2000)+'-'+pad2(c.birthday.m+1)+'-'+pad2(c.birthday.d):'',starred:!!c.starred,needsReview:!!c.needsReview,toContact:!!(S.reach&&S.reach.has(c.id)),
-  parents:c.parents||[],partner:c.spouse||'',lastContact:dateStr(c.last),added:dateStr(c.added),beeper:c.beeper||{},notes:c.notes||''};}
+  parents:c.parents||[],partner:c.spouse||'',lastContact:dateStr(c.last),added:dateStr(c.added),beeper:c.beeper||{},notes:c.notes||'',aiNotes:c.aiNotes||''};}
 const ser=c=>JSON.stringify(toBackend(c));
 function markClean(c){SNAP.set(c.id,{ser:ser(c),photo:c.photo||'',logN:c.log.length});}
 function snapshotAll(){SNAP.clear();CONTACTS.forEach(markClean);}
@@ -2516,7 +2608,7 @@ function applyLive(data){
   CONTACTS=(data.contacts||[]).map(b=>{const bd=/^(\d{4})-(\d\d)-(\d\d)/.exec(b.birthday||'');
     return blank({id:b.id,name:b.name,first:String(b.name||'').split(' ')[0],color:PALETTE[Math.floor(hash(String(b.id))*PALETTE.length)],category:b.category,relationship:b.relationship,network:b.network,
       place:b.place||[],tags:b.tags||[],membership:b.membership||[],gender:b.gender,priority:b.priority||'Low',cadence:b.cadence||'Not set',platform:b.platform,phone:b.phone,email:b.email,instagram:b.instagram,
-      facebook:b.facebook,linkedin:b.linkedin,address:b.address,lat:b.lat===''||b.lat==null?null:+b.lat,lng:b.lng===''||b.lng==null?null:+b.lng,jpName:b.jpName||'',likes:(()=>{try{return b.likes?JSON.parse(b.likes):{};}catch(e){return{};}})(),birthday:bd?{y:+bd[1],m:bd[2]-1,d:+bd[3]}:null,beeper:b.beeper||{},log:(logs[b.id]||[]).sort((x,y)=>x.d-y.d),last:dateToDays(b.lastContact),
+      facebook:b.facebook,linkedin:b.linkedin,address:b.address,lat:b.lat===''||b.lat==null?null:+b.lat,lng:b.lng===''||b.lng==null?null:+b.lng,jpName:b.jpName||'',aiNotes:b.aiNotes||'',likes:(()=>{try{return b.likes?JSON.parse(b.likes):{};}catch(e){return{};}})(),birthday:bd?{y:+bd[1],m:bd[2]-1,d:+bd[3]}:null,beeper:b.beeper||{},log:(logs[b.id]||[]).sort((x,y)=>x.d-y.d),last:dateToDays(b.lastContact),
       added:dateToDays(b.added)??0,starred:!!b.starred,needsReview:!!b.needsReview,photo:(data.photos||{})[b.id]||'',notes:b.notes||'',parents:b.parents||[],spouse:b.partner||''});});
   S.reach=new Set((data.contacts||[]).filter(b=>b.toContact).map(b=>b.id));
   ME=(data.settings||{}).Me||ME;

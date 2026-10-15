@@ -12,7 +12,7 @@
  */
 
 var TABS = {
-  Contacts: ['ID', 'Name', 'Category', 'Relationship', 'Network', 'Place met', 'Tags', 'Membership', 'Gender', 'Priority', 'Cadence', 'Messaging app', 'Phone', 'Email', 'Instagram', 'Facebook', 'LinkedIn', 'Address', 'Birthday', 'Starred', 'Needs review', 'To contact', 'Parents', 'Partner', 'Last contact', 'Added', 'Beeper chats', 'Notes', 'Updated', 'Lat', 'Lng', 'Japanese name', 'Likes'],
+  Contacts: ['ID', 'Name', 'Category', 'Relationship', 'Network', 'Place met', 'Tags', 'Membership', 'Gender', 'Priority', 'Cadence', 'Messaging app', 'Phone', 'Email', 'Instagram', 'Facebook', 'LinkedIn', 'Address', 'Birthday', 'Starred', 'Needs review', 'To contact', 'Parents', 'Partner', 'Last contact', 'Added', 'Beeper chats', 'Notes', 'Updated', 'Lat', 'Lng', 'Japanese name', 'Likes', 'AI notes'],
   Log: ['Date', 'Contact ID', 'Contact', 'App', 'Source'],
   Photos: ['Contact ID', 'Photo'],
   'Beeper Chats': ['Chat ID', 'App', 'Name', 'Last activity', 'You last sent', 'Contact ID', 'Status'],
@@ -30,7 +30,7 @@ var FIELDS = {
   cadence: 'Cadence', platform: 'Messaging app', phone: 'Phone', email: 'Email', instagram: 'Instagram',
   facebook: 'Facebook', linkedin: 'LinkedIn', address: 'Address', birthday: 'Birthday', starred: 'Starred',
   needsReview: 'Needs review', toContact: 'To contact', parents: 'Parents', partner: 'Partner',
-  lastContact: 'Last contact', added: 'Added', beeper: 'Beeper chats', notes: 'Notes', updated: 'Updated', lat: 'Lat', lng: 'Lng', jpName: 'Japanese name', likes: 'Likes'
+  lastContact: 'Last contact', added: 'Added', beeper: 'Beeper chats', notes: 'Notes', updated: 'Updated', lat: 'Lat', lng: 'Lng', jpName: 'Japanese name', likes: 'Likes', aiNotes: 'AI notes'
 };
 var LIST_FIELDS = { place: 1, tags: 1, membership: 1, parents: 1 };
 var BOOL_FIELDS = { starred: 1, needsReview: 1, toContact: 1 };
@@ -79,6 +79,8 @@ function run_(p) {
     case 'batch': return { ok: true, results: (p.ops || []).map(function (op) { return run_(op); }) };
     case 'saveContact': return saveContact_(p.contact);
     case 'deleteContact': return deleteContact_(p.id);
+    case 'mergeContacts': return mergeContacts_(p.keep, p.drop);
+    case 'splitNotes': return splitNotes_();
     case 'log': return addLog_(p.id, p.date, p.app, p.source || 'NAKAMA');
     case 'savePhoto': return savePhoto_(p.id, p.photo);
     case 'linkChat': return linkChat_(p.chatId, p.contactId);
@@ -242,6 +244,57 @@ function deleteContact_(id) {
   var p = findRow_('Photos', 'Contact ID', id);
   if (p.row > 0) p.sh.deleteRow(p.row);
   return { ok: true };
+}
+
+// Moves everything that points at `drop` (message log, Beeper chats, photo) over to `keep`, then removes `drop`.
+// The app saves the merged contact details for `keep` straight after this.
+function mergeContacts_(keep, drop) {
+  if (!keep || !drop || String(keep) === String(drop)) return { ok: false, error: 'Pick two different contacts to merge.' };
+  var k = findRow_('Contacts', 'ID', keep);
+  if (k.row < 0) return { ok: false, error: 'The contact to keep was not found.' };
+  var keepName = k.values[k.map['Name']];
+  [['Log', 'Contact ID', 'Contact'], ['Beeper Chats', 'Contact ID', null]].forEach(function (t) {
+    var r = rows_(t[0]), c = r.map[t[1]], n = t[2] ? r.map[t[2]] : undefined;
+    r.values.forEach(function (v, i) {
+      if (String(v[c]) !== String(drop)) return;
+      r.sh.getRange(i + 2, c + 1).setNumberFormat('@').setValue(String(keep));
+      if (n !== undefined) r.sh.getRange(i + 2, n + 1).setValue(keepName);
+    });
+  });
+  var kp = findRow_('Photos', 'Contact ID', keep), dp = findRow_('Photos', 'Contact ID', drop);
+  if (dp.row > 0) {
+    if (kp.row > 0) dp.sh.deleteRow(dp.row);
+    else dp.sh.getRange(dp.row, 1).setNumberFormat('@').setValue(String(keep));
+  }
+  // Family links in other contacts
+  var C = rows_('Contacts'), pc = C.map['Parents'], sc = C.map['Partner'];
+  C.values.forEach(function (v, i) {
+    if (pc !== undefined && v[pc] && v[pc].split(',').map(function (x) { return x.trim(); }).indexOf(String(drop)) >= 0)
+      C.sh.getRange(i + 2, pc + 1).setValue(v[pc].split(',').map(function (x) { x = x.trim(); return x === String(drop) ? String(keep) : x; }).join(', '));
+    if (sc !== undefined && String(v[sc]) === String(drop)) C.sh.getRange(i + 2, sc + 1).setValue(String(keep));
+  });
+  var d = findRow_('Contacts', 'ID', drop);
+  if (d.row > 0) d.sh.deleteRow(d.row);
+  return { ok: true };
+}
+
+// One-off: splits old notes at the "# AI information" heading. Text above it stays in Notes (your own notes),
+// text below it moves to the AI notes column. Safe to run again: rows without the heading are left alone.
+function splitNotes_() {
+  var sh = sheet_('Contacts');
+  ensureCols_(sh, TABS.Contacts);
+  var r = rows_('Contacts'), nc = r.map['Notes'], ac = r.map['AI notes'], moved = 0;
+  r.values.forEach(function (v, i) {
+    var notes = String(v[nc] || ''), m = /^[ \t]*#+[ \t]*AI information[ \t]*$/im.exec(notes);
+    if (!m) return;
+    var mine = notes.slice(0, m.index).replace(/^\s*#+\s*Notes\s*$/im, '').trim();
+    var ai = notes.slice(m.index + m[0].length).trim();
+    var old = String(v[ac] || '').trim();
+    sh.getRange(i + 2, nc + 1).setValue(mine);
+    sh.getRange(i + 2, ac + 1).setValue(old ? old + '\n\n' + ai : ai);
+    moved++;
+  });
+  return { ok: true, moved: moved };
 }
 
 function addLog_(id, date, app, source) {
