@@ -1,0 +1,23 @@
+// Run: see tests/README.md
+const APP=process.env.APP_URL||'http://localhost:8765/index.html';const OUT=process.env.OUT||require('os').tmpdir();
+const {chromium}=require('playwright');
+const shot=async(p,n)=>p.screenshot({path:OUT+'/'+n+'.png'});
+(async()=>{const b=await chromium.launch(process.env.CHROMIUM?{executablePath:process.env.CHROMIUM}:{});const ctx=await b.newContext({viewport:{width:1440,height:900}});
+ await ctx.route(/(cartocdn|arcgisonline|unpkg|fonts.googleapis|nominatim)/,r=>r.abort());
+ const p=await ctx.newPage();const errs=[];p.on('pageerror',e=>errs.push(e.message));
+ const step=async(n,f)=>{try{await f();console.log('OK  ',n);}catch(e){console.log('FAIL',n,e.message.split('\n')[0]);}};
+ await p.goto(''+APP+'#contacts');await p.waitForTimeout(600);
+ const count=async()=>+(await p.textContent('.nav[data-r=contacts] .count').catch(()=>'0'));
+ await step('profile notes cards',async()=>{await p.click('[data-act=open]');await p.waitForSelector('#profile:not([hidden])');
+   if(!await p.$('#f-aiNotes'))throw new Error('no ai notes');await p.fill('#f-aiNotes','- Likes surfing');await p.locator('#f-aiNotes').blur();await shot(p,'notes');});
+ let before;
+ await step('merge picker',async()=>{before=await count();await p.click('.pbar [data-act=mg-open]');await p.waitForSelector('#mgq');const n=await p.$$eval('[data-act=mg-pick]',x=>x.length);console.log('   suggestions',n);
+   if(!n){await p.fill('#mgq','a');}await shot(p,'mergepick');await p.click('[data-act=mg-pick]');await p.waitForSelector('.cmp');await shot(p,'review');});
+ await step('merge back to profile',async()=>{await p.click('[data-act=rv-merge]');await p.waitForSelector('#profile:not([hidden])');const after=await count();console.log('   count',before,'->',after);if(after!==before-1)throw new Error('count');});
+ await step('matcher name choice',async()=>{await p.click('[data-act=close-profile]');await shot(p,'afterclose');await p.click('.nav[data-r=other]');await p.click('.tool[data-k=matcher]');await p.waitForSelector('.chatcard',{timeout:5000});console.log('   card ok');
+   const chatName=await p.textContent('.chatcard .nmcopy');await p.fill('#mq','Grace');await p.waitForTimeout(200);await p.click('[data-act=mlink]',{timeout:5000});
+   const modal=await p.$('#lnh');console.log('   chat',chatName.trim(),'modal',!!modal);
+   if(modal){await shot(p,'linkname');await p.fill('#lnNew','Brand New Name');await p.waitForTimeout(400);await shot(p,'linkname2');await p.click('[data-act=ln-ok]');await p.waitForTimeout(100);
+     const ok=await p.evaluate(()=>document.body.innerText.includes('Linked'));console.log('   toast',ok);}});
+ await step('find renamed',async()=>{await p.click('.nav[data-r=contacts]');await p.fill('#q','Brand New Name');await p.waitForTimeout(300);const t=await p.$$eval('#v-contacts [data-act=open]',x=>x.map(e=>e.textContent).join('|'));if(!t.includes('Brand New Name'))throw new Error('not renamed');});
+ console.log('errors',errs);await b.close();})();

@@ -1,0 +1,10 @@
+{
+  "name": "nakama-tests",
+  "private": true,
+  "description": "Browser tests for NAKAMA. They only use the built-in demo data and a fake backend.",
+  "devDependencies": {
+    "playwright": "^1.47.0",
+    "leaflet": "1.9.4",
+    "leaflet.markercluster": "1.5.3"
+  }
+}
